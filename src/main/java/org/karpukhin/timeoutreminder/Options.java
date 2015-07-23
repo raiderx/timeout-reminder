@@ -9,6 +9,7 @@ public class Options {
     private int workDuration;
     private int breakDuration;
     private boolean startAutomatically;
+    private String message;
 
     public int getWorkDuration() {
         return workDuration;
@@ -32,5 +33,13 @@ public class Options {
 
     public void setStartAutomatically(boolean startAutomatically) {
         this.startAutomatically = startAutomatically;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

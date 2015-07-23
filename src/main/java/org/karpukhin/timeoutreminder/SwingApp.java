@@ -41,33 +41,37 @@ public class SwingApp {
     private final OptionsStorage optionsStorage;
     private final ScheduledExecutorService executor;
     private final Reminder reminder;
+    private final MessageSource messageSource;
 
     private final JLabel workLabel;
     private final JTextField workField;
     private final JLabel breakLabel;
     private final JTextField breakField;
-    private final JLabel todoLabel;
+    private final JLabel messageLabel;
+    private final JTextField messageField;
+    //private final JLabel todoLabel;
     private final JCheckBox startAutomaticallyCheckBox;
     private final JButton startButton;
     private final JButton pauseButton;
     private final JLabel statusLabel;
     private final JFrame mainFrame;
 
-    private String message = "Надо сделать перерыв";
-
     protected SwingApp() {
         optionsStorage = new MemoryOptionsStorage();
         executor = Executors.newScheduledThreadPool(2);
         reminder = new Reminder(executor);
+        messageSource = new ResourceBundleMessageSource("messages");
 
-        workLabel = new JLabel("Work");
+        workLabel = new JLabel(messageSource.getMessage("label.work"));
         workField = new JTextField(10);
-        breakLabel = new JLabel("Pause");
+        breakLabel = new JLabel(messageSource.getMessage("label.break"));
         breakField = new JTextField(10);
-        todoLabel = new JLabel("What to do");
-        startAutomaticallyCheckBox = new JCheckBox("Start automatically");
-        startButton = new JButton("Start");
-        pauseButton = new JButton("Pause");
+        messageLabel = new JLabel(messageSource.getMessage("label.message"));
+        messageField = new JTextField(20);
+        //todoLabel = new JLabel("What to do");
+        startAutomaticallyCheckBox = new JCheckBox(messageSource.getMessage("label.start.automatically"));
+        startButton = new JButton(messageSource.getMessage("label.start"));
+        pauseButton = new JButton(messageSource.getMessage("label.pause"));
 
         statusLabel = new JLabel();
         mainFrame = new JFrame(TITLE);
@@ -110,7 +114,8 @@ public class SwingApp {
                     options.setWorkDuration(workDuration);
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text, "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
+                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     workField.requestFocus();
                 }
             }
@@ -125,7 +130,8 @@ public class SwingApp {
                     options.setWorkDuration(breakDuration);
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text, "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
+                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     breakField.requestFocus();
                 }
             }
@@ -144,7 +150,8 @@ public class SwingApp {
                 try {
                     startReminder();
                 } catch (Exception error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Start error: " + error.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(mainFrame, "Start error: " + error.getMessage(),
+                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -158,7 +165,8 @@ public class SwingApp {
                         resumeReminder();
                     }
                 } catch (Exception error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Pause/Resume error: " + error.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(mainFrame, "Pause/Resume error: " + error.getMessage(),
+                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -194,16 +202,18 @@ public class SwingApp {
         layout.setHorizontalGroup(layout.createParallelGroup()
                 .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup()
-                                        .addComponent(workLabel)
-                                        .addComponent(breakLabel)
+                                .addComponent(workLabel)
+                                .addComponent(breakLabel)
+                                .addComponent(messageLabel)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup()
-                                        .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                 )
-                .addComponent(todoLabel)
+                //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createSequentialGroup()
                         .addComponent(startButton)
@@ -219,7 +229,11 @@ public class SwingApp {
                                 .addComponent(breakLabel)
                                 .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
-                .addComponent(todoLabel)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(messageLabel)
+                                        .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createParallelGroup()
                         .addComponent(startButton)
@@ -242,6 +256,12 @@ public class SwingApp {
         workField.setText(Integer.toString(options.getWorkDuration()));
         breakField.setText(Integer.toString(options.getBreakDuration()));
         startAutomaticallyCheckBox.setSelected(options.isStartAutomatically());
+        String message = options.getMessage();
+        if (message == null || message.isEmpty()) {
+            message = messageSource.getMessage("default.message");
+            options.setMessage(message);
+        }
+        messageField.setText(message);
     }
 
     private void scheduleFetching() {
@@ -272,7 +292,7 @@ public class SwingApp {
             public void run() {
                 try {
                     System.out.println("Time to break!");
-                    Runtime.getRuntime().exec(new String[]{"zenity", "--info", "--title=" + TITLE, "--text=" + message});
+                    Runtime.getRuntime().exec(new String[]{"zenity", "--info", "--title=" + TITLE, "--text=" + messageField.getText()});
                     System.out.println("Message was shown");
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -282,19 +302,19 @@ public class SwingApp {
         Options options = optionsStorage.load();
         reminder.start(options.getWorkDuration(), command);
         startButton.setEnabled(false);
-        pauseButton.setText("Pause");
+        pauseButton.setText(messageSource.getMessage("label.pause"));
     }
 
     private void pauseReminder() {
         reminder.pause();
         startButton.setEnabled(true);
-        pauseButton.setText("Resume");
+        pauseButton.setText(messageSource.getMessage("label.resume"));
     }
 
     private void resumeReminder() {
         reminder.resume();
         startButton.setEnabled(false);
-        pauseButton.setText("Pause");
+        pauseButton.setText(messageSource.getMessage("label.pause"));
     }
 
     protected void show() {
