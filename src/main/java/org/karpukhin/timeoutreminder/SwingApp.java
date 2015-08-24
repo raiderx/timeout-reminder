@@ -106,7 +106,7 @@ public class SwingApp {
     private void initComponents() {
         workField.addFocusListener(new FocusAdapter() {
             @Override
-            public void focusLost(FocusEvent e) {
+            public void focusLost(FocusEvent event) {
                 String text = workField.getText();
                 try {
                     int workDuration = Integer.parseInt(text);
@@ -115,14 +115,14 @@ public class SwingApp {
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
                     JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
-                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     workField.requestFocus();
                 }
             }
         });
         breakField.addFocusListener(new FocusAdapter() {
             @Override
-            public void focusLost(FocusEvent e) {
+            public void focusLost(FocusEvent event) {
                 String text = breakField.getText();
                 try {
                     int breakDuration = Integer.parseInt(text);
@@ -131,14 +131,14 @@ public class SwingApp {
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
                     JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
-                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     breakField.requestFocus();
                 }
             }
         });
         startAutomaticallyCheckBox.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent event) {
                 Options options = optionsStorage.load();
                 options.setStartAutomatically(startAutomaticallyCheckBox.isSelected());
                 optionsStorage.save(options);
@@ -151,7 +151,7 @@ public class SwingApp {
                     startReminder();
                 } catch (Exception error) {
                     JOptionPane.showMessageDialog(mainFrame, "Start error: " + error.getMessage(),
-                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -166,7 +166,7 @@ public class SwingApp {
                     }
                 } catch (Exception error) {
                     JOptionPane.showMessageDialog(mainFrame, "Pause/Resume error: " + error.getMessage(),
-                            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -178,8 +178,8 @@ public class SwingApp {
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension d = toolkit.getScreenSize();
         mainFrame.setLocation(
-                (int) (d.getWidth() - mainFrame.getSize().getWidth()) / 2,
-                (int) (d.getHeight() - mainFrame.getSize().getHeight()) / 2);
+            (int) (d.getWidth() - mainFrame.getSize().getWidth()) / 2,
+            (int) (d.getHeight() - mainFrame.getSize().getHeight()) / 2);
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
@@ -219,20 +219,20 @@ public class SwingApp {
                         .addComponent(startButton)
                         .addComponent(pauseButton)
                 )
-                );
+        );
         layout.setVerticalGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(workLabel)
-                                .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(workLabel)
+                        .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(breakLabel)
-                                .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(breakLabel)
+                        .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(messageLabel)
-                                        .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(messageLabel)
+                        .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                )
                 //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createParallelGroup()
@@ -273,8 +273,8 @@ public class SwingApp {
                     status = "Not started";
                 } else {
                     long elapsed = reminder.getElapsed();
-                    String format = reminder.getState() == State.Paused ? "Paused, left {0}:{1,number,00} s" : "Running, left {0}:{1,number,00} s";
-                    status = MessageFormat.format(format, elapsed / 60, elapsed % 60);
+                    status = reminder.getState() == State.Paused ? "Paused" : "Running";
+                    status += MessageFormat.format(", left {0}:{1,number,00} s", elapsed / 60, elapsed % 60);
                 }
                 statusLabel.setText(status);
             }

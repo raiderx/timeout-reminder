@@ -21,6 +21,7 @@ public class MemoryOptionsStorage implements OptionsStorage {
         result.setWorkDuration(options.getWorkDuration());
         result.setBreakDuration(options.getBreakDuration());
         result.setStartAutomatically(options.isStartAutomatically());
+        result.setMessage(options.getMessage());
         return result;
     }
 
@@ -29,5 +30,6 @@ public class MemoryOptionsStorage implements OptionsStorage {
         this.options.setWorkDuration(options.getWorkDuration());
         this.options.setBreakDuration(options.getBreakDuration());
         this.options.setStartAutomatically(options.isStartAutomatically());
+        this.options.setMessage(options.getMessage());
     }
 }
