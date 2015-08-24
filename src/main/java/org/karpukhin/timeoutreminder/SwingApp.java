@@ -1,5 +1,6 @@
 package org.karpukhin.timeoutreminder;
 
+import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -12,17 +13,25 @@ import javax.swing.LayoutStyle;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.BevelBorder;
+import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.Image;
+import java.awt.PopupMenu;
+import java.awt.SystemTray;
 import java.awt.Toolkit;
+import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowStateListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +64,9 @@ public class SwingApp {
     private final JButton pauseButton;
     private final JLabel statusLabel;
     private final JFrame mainFrame;
+
+    private TrayIcon trayIcon;
+    private SystemTray systemTray;
 
     protected SwingApp() {
         optionsStorage = new MemoryOptionsStorage();
@@ -91,6 +103,7 @@ public class SwingApp {
 
         initComponents();
         initMainFrame();
+        initSystemTray();
         createLayout();
         readOptions(applicationHome);
         scheduleFetching();
@@ -178,16 +191,114 @@ public class SwingApp {
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension d = toolkit.getScreenSize();
         mainFrame.setLocation(
-                (int) (d.getWidth() - mainFrame.getSize().getWidth()) / 2,
-                (int) (d.getHeight() - mainFrame.getSize().getHeight()) / 2);
+            (int) (d.getWidth() - mainFrame.getSize().getWidth()) / 2,
+            (int) (d.getHeight() - mainFrame.getSize().getHeight()) / 2);
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
                 if (executor != null) {
                     executor.shutdown();
                 }
+                if (systemTray != null && trayIcon != null) {
+                    systemTray.remove(trayIcon);
+                }
+            }
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+                System.out.println(e.getNewState() + " " + e.paramString());
+                //mainFrame.setVisible(false);
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+                System.out.println(e.getNewState() + " " + e.paramString());
             }
         });
+        mainFrame.addWindowStateListener(new WindowStateListener() {
+            @Override
+            public void windowStateChanged(WindowEvent e) {
+                System.out.println(e.getNewState() + " " + e.paramString());
+            }
+        });
+    }
+
+    private void initSystemTray() {
+        if (!SystemTray.isSupported()) {
+            System.out.println("SystemTray is not supported");
+            return;
+        }
+
+        Image image = createImage("/icons/32x32.png");
+
+        final PopupMenu popup = new PopupMenu();
+
+        // Create a pop-up menu components
+        //MenuItem aboutItem = new MenuItem("Restore");
+        //MenuItem exitItem = new MenuItem("Exit");
+
+        //Add components to pop-up menu
+        //popup.add(aboutItem);
+        //popup.add(exitItem);
+
+        trayIcon = new TrayIcon(image);
+        //trayIcon.setPopupMenu(popup);
+        trayIcon.setImageAutoSize(true);
+        trayIcon.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                /*if ((mainFrame.getExtendedState() & Frame.ICONIFIED) == 0) {
+                    mainFrame.setVisible(false);
+                    mainFrame.setExtendedState(mainFrame.getExtendedState() | Frame.ICONIFIED);
+                } else {
+                    mainFrame.setVisible(true);
+                    mainFrame.setExtendedState(mainFrame.getExtendedState() & ~Frame.ICONIFIED);
+                }*/
+                //mainFrame.setVisible(!mainFrame.isVisible());
+                /*if (mainFrame.isVisible()) {
+                    mainFrame.setState(Frame.NORMAL);
+                }*/
+                if (mainFrame.isVisible()) {
+                    mainFrame.setVisible(false);
+                } else {
+                    System.out.println("State: " + mainFrame.getExtendedState());
+                    mainFrame.setExtendedState(mainFrame.getExtendedState() & ~Frame.ICONIFIED);
+                    mainFrame.setVisible(true);
+                    System.out.println("State: " + mainFrame.getExtendedState());
+                }
+            }
+        });
+
+        systemTray = SystemTray.getSystemTray();
+        Dimension d = systemTray.getTrayIconSize();
+        System.out.println("Tray icon size: " + d);
+
+        for (TrayIcon icon : systemTray.getTrayIcons()) {
+            System.out.println("Tooltip: " + icon.getToolTip() + ", size: " + icon.getSize());
+        }
+
+        try {
+            systemTray.add(trayIcon);
+        } catch (AWTException e) {
+            System.out.println("TrayIcon could not be added.");
+        }
+    }
+
+    protected static Image createImage(String path) {
+        if (path == null) {
+            throw new IllegalArgumentException("Parameter 'path' can't be null");
+        }
+        URL imageURL = SwingApp.class.getResource(path);
+        if (imageURL == null) {
+            throw new RuntimeException("Can't find image " + path);
+        }
+        //return Toolkit.getDefaultToolkit().getImage(path);
+        //return new ImageIcon(imageURL).getImage();
+        try {
+            return ImageIO.read(imageURL);
+        } catch (IOException e) {
+            throw new RuntimeException("Can't load image " + path);
+        }
     }
 
     private void createLayout() {
@@ -219,20 +330,20 @@ public class SwingApp {
                         .addComponent(startButton)
                         .addComponent(pauseButton)
                 )
-                );
+        );
         layout.setVerticalGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(workLabel)
-                                .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(workLabel)
+                        .addComponent(workField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(breakLabel)
-                                .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(breakLabel)
+                        .addComponent(breakField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(messageLabel)
-                                        .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(messageLabel)
+                        .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                )
                 //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createParallelGroup()
@@ -277,6 +388,7 @@ public class SwingApp {
                     status = MessageFormat.format(format, elapsed / 60, elapsed % 60);
                 }
                 statusLabel.setText(status);
+                trayIcon.setToolTip(status);
             }
         };
         executor.scheduleAtFixedRate(monitorTask, 1L, 1L, TimeUnit.SECONDS);
