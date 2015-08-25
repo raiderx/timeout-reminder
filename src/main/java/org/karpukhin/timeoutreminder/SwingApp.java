@@ -114,7 +114,8 @@ public class SwingApp {
                     options.setWorkDuration(workDuration);
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
+                    JOptionPane.showMessageDialog(mainFrame,
+                        MessageFormat.format(messageSource.getMessage("label.expected.integer"), text),
                         messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     workField.requestFocus();
                 }
@@ -130,7 +131,8 @@ public class SwingApp {
                     options.setWorkDuration(breakDuration);
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Expected integer but got: " + text,
+                    JOptionPane.showMessageDialog(mainFrame,
+                        MessageFormat.format(messageSource.getMessage("label.expected.integer"), text),
                         messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                     breakField.requestFocus();
                 }
@@ -150,7 +152,8 @@ public class SwingApp {
                 try {
                     startReminder();
                 } catch (Exception error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Start error: " + error.getMessage(),
+                    JOptionPane.showMessageDialog(mainFrame,
+                        MessageFormat.format(messageSource.getMessage("label.start.error"), error.getMessage()),
                         messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
                 }
             }
@@ -270,11 +273,11 @@ public class SwingApp {
             public void run() {
                 String status;
                 if (reminder.getState() == State.NotStarted) {
-                    status = "Not started";
+                    status = messageSource.getMessage("label.not.started");
                 } else {
                     long elapsed = reminder.getElapsed();
-                    status = reminder.getState() == State.Paused ? "Paused" : "Running";
-                    status += MessageFormat.format(", left {0}:{1,number,00} s", elapsed / 60, elapsed % 60);
+                    status = messageSource.getMessage(reminder.getState() == State.Paused ? "label.paused" : "label.running");
+                    status += ", " + MessageFormat.format(messageSource.getMessage("label.left"), elapsed / 60, elapsed % 60);
                 }
                 statusLabel.setText(status);
             }
