@@ -7,6 +7,6 @@ Main window:
 
 ![Main window](timeout-reminder.png)
 
-Application uses Zenity for notifications:
+Application uses [Zenity](https://wiki.gnome.org/Projects/Zenity) for notifications:
 
 ![Zenity notification](zenity-notification.png)
