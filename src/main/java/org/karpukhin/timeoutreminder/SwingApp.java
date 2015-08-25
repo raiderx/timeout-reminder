@@ -128,7 +128,7 @@ public class SwingApp {
                 try {
                     int breakDuration = Integer.parseInt(text);
                     Options options = optionsStorage.load();
-                    options.setWorkDuration(breakDuration);
+                    options.setBreakDuration(breakDuration);
                     optionsStorage.save(options);
                 } catch (NumberFormatException error) {
                     JOptionPane.showMessageDialog(mainFrame,
