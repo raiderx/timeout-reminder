@@ -1,14 +1,31 @@
 package org.karpukhin.timeoutreminder;
 
 /**
+ * Application options
+ *
  * @author Pavel Karpukhin
  * @since 23.07.15
  */
 public class Options {
 
+    /**
+     * Duration of work
+     */
     private int workDuration;
+
+    /**
+     * Duration of break
+     */
     private int breakDuration;
+
+    /**
+     * If application should start reminding automatically
+     */
     private boolean startAutomatically;
+
+    /**
+     * Message
+     */
     private String message;
 
     public int getWorkDuration() {

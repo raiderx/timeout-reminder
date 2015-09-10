@@ -2,6 +2,8 @@ Timeout Reminder
 ================
 Java application that reminds you when it is high time to have a break.
 
+Application requires JRE 7.
+
 ###Screenshots###
 Main window: 
 
