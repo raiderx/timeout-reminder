@@ -21,7 +21,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.concurrent.Executors;
@@ -38,10 +37,10 @@ public class SwingApp {
     private static final int WIDTH = 400;
     private static final int HEIGHT = 250;
 
-    private final OptionsStorage optionsStorage;
+    private final MessageSource messageSource;
+    private final Options options;
     private final ScheduledExecutorService executor;
     private final Reminder reminder;
-    private final MessageSource messageSource;
 
     private final JLabel workLabel;
     private final JTextField workField;
@@ -49,7 +48,6 @@ public class SwingApp {
     private final JTextField breakField;
     private final JLabel messageLabel;
     private final JTextField messageField;
-    //private final JLabel todoLabel;
     private final JCheckBox startAutomaticallyCheckBox;
     private final JButton startButton;
     private final JButton pauseButton;
@@ -57,18 +55,18 @@ public class SwingApp {
     private final JFrame mainFrame;
 
     protected SwingApp() {
-        optionsStorage = new MemoryOptionsStorage();
+        messageSource = new ResourceBundleMessageSource("messages");
+        options = defaultOptions();
         executor = Executors.newScheduledThreadPool(2);
         reminder = new Reminder(executor);
-        messageSource = new ResourceBundleMessageSource("messages");
 
         workLabel = new JLabel(messageSource.getMessage("label.work"));
         workField = new JTextField(10);
         breakLabel = new JLabel(messageSource.getMessage("label.break"));
         breakField = new JTextField(10);
-        messageLabel = new JLabel(messageSource.getMessage("label.message"));
+        messageLabel = new JLabel(messageSource.getMessage("label.message"))
+        ;
         messageField = new JTextField(20);
-        //todoLabel = new JLabel("What to do");
         startAutomaticallyCheckBox = new JCheckBox(messageSource.getMessage("label.start.automatically"));
         startButton = new JButton(messageSource.getMessage("label.start"));
         pauseButton = new JButton(messageSource.getMessage("label.pause"));
@@ -78,29 +76,9 @@ public class SwingApp {
     }
 
     protected void init() {
-
-        String applicationHome = configPath(System.getProperty("os.name"), System.getProperty("user.home"));
-        File file = new File(applicationHome);
-        if (!file.exists()) {
-            if (!file.mkdir()) {
-                throw new RuntimeException("Can not create application home directory");
-            }
-        } else if (!file.isDirectory() || !file.canRead()) {
-            throw new RuntimeException("Can not read from application home directory");
-        }
-
         initComponents();
         initMainFrame();
         createLayout();
-        readOptions(applicationHome);
-        scheduleFetching();
-    }
-
-    static String configPath(String os, String home) {
-        if (os.contains("Linux")) {
-            return home + "/.config/timeout-reminder";
-        }
-        return home + File.separator + ".timeout-reminder";
     }
 
     private void initComponents() {
@@ -110,13 +88,9 @@ public class SwingApp {
                 String text = workField.getText();
                 try {
                     int workDuration = Integer.parseInt(text);
-                    Options options = optionsStorage.load();
                     options.setWorkDuration(workDuration);
-                    optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame,
-                        MessageFormat.format(messageSource.getMessage("label.expected.integer"), text),
-                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                    showError(messageSource.getMessage("label.expected.integer"), text);
                     workField.requestFocus();
                 }
             }
@@ -127,13 +101,9 @@ public class SwingApp {
                 String text = breakField.getText();
                 try {
                     int breakDuration = Integer.parseInt(text);
-                    Options options = optionsStorage.load();
                     options.setBreakDuration(breakDuration);
-                    optionsStorage.save(options);
                 } catch (NumberFormatException error) {
-                    JOptionPane.showMessageDialog(mainFrame,
-                        MessageFormat.format(messageSource.getMessage("label.expected.integer"), text),
-                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                    showError(messageSource.getMessage("label.expected.integer"), text);
                     breakField.requestFocus();
                 }
             }
@@ -141,9 +111,7 @@ public class SwingApp {
         startAutomaticallyCheckBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent event) {
-                Options options = optionsStorage.load();
                 options.setStartAutomatically(startAutomaticallyCheckBox.isSelected());
-                optionsStorage.save(options);
             }
         });
         startButton.addActionListener(new ActionListener() {
@@ -152,9 +120,7 @@ public class SwingApp {
                 try {
                     startReminder();
                 } catch (Exception error) {
-                    JOptionPane.showMessageDialog(mainFrame,
-                        MessageFormat.format(messageSource.getMessage("label.start.error"), error.getMessage()),
-                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                    showError(messageSource.getMessage("label.start.error"), error.getMessage());
                 }
             }
         });
@@ -168,8 +134,7 @@ public class SwingApp {
                         resumeReminder();
                     }
                 } catch (Exception error) {
-                    JOptionPane.showMessageDialog(mainFrame, "Pause/Resume error: " + error.getMessage(),
-                        messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+                    showError("Pause/Resume error: " + error.getMessage());
                 }
             }
         });
@@ -216,7 +181,6 @@ public class SwingApp {
                                 .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                 )
-                //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createSequentialGroup()
                         .addComponent(startButton)
@@ -236,7 +200,6 @@ public class SwingApp {
                         .addComponent(messageLabel)
                         .addComponent(messageField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
-                //.addComponent(todoLabel)
                 .addComponent(startAutomaticallyCheckBox)
                 .addGroup(layout.createParallelGroup()
                         .addComponent(startButton)
@@ -254,20 +217,7 @@ public class SwingApp {
         mainFrame.getContentPane().add(statusPanel, BorderLayout.SOUTH);
     }
 
-    void readOptions(String home) {
-        Options options = optionsStorage.load();
-        workField.setText(Integer.toString(options.getWorkDuration()));
-        breakField.setText(Integer.toString(options.getBreakDuration()));
-        startAutomaticallyCheckBox.setSelected(options.isStartAutomatically());
-        String message = options.getMessage();
-        if (message == null || message.isEmpty()) {
-            message = messageSource.getMessage("default.message");
-            options.setMessage(message);
-        }
-        messageField.setText(message);
-    }
-
-    private void scheduleFetching() {
+    private void scheduleReminding() {
         Runnable monitorTask = new Runnable() {
             @Override
             public void run() {
@@ -302,7 +252,6 @@ public class SwingApp {
                 }
             }
         };
-        Options options = optionsStorage.load();
         reminder.start(options.getWorkDuration(), command);
         startButton.setEnabled(false);
         pauseButton.setText(messageSource.getMessage("label.pause"));
@@ -320,8 +269,34 @@ public class SwingApp {
         pauseButton.setText(messageSource.getMessage("label.pause"));
     }
 
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(mainFrame, message, messageSource.getMessage("label.error"),
+            JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showError(String pattern, Object ... arguments) {
+        JOptionPane.showMessageDialog(mainFrame, MessageFormat.format(pattern, arguments),
+            messageSource.getMessage("label.error"), JOptionPane.ERROR_MESSAGE);
+    }
+
     protected void show() {
         mainFrame.setVisible(true);
+    }
+
+    private void loadOptions() {
+        workField.setText(Integer.toString(options.getWorkDuration()));
+        breakField.setText(Integer.toString(options.getBreakDuration()));
+        startAutomaticallyCheckBox.setSelected(options.isStartAutomatically());
+        messageField.setText(options.getMessage());
+    }
+
+    private Options defaultOptions() {
+        Options options = new Options();
+        options.setWorkDuration(35);
+        options.setBreakDuration(10);
+        options.setStartAutomatically(true);
+        options.setMessage(messageSource.getMessage("default.message"));
+        return options;
     }
 
     public static void main(String[] args) {
@@ -331,6 +306,8 @@ public class SwingApp {
                 SwingApp app = new SwingApp();
                 app.init();
                 app.show();
+                app.loadOptions();
+                app.scheduleReminding();
             }
         });
     }
